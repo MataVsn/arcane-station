@@ -1,3 +1,4 @@
+using Content.Server._Arcane.ERP;
 using Content.Server._Arcane.ERP.Preferences;
 using Content.Server.Preferences.Managers;
 using Content.Shared._Arcane.ERP;
@@ -18,6 +19,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
     [Dependency] private readonly ErpOrganPreferencesManager _erpPrefs = default!;
     [Dependency] private readonly IServerPreferencesManager _prefs = default!;
     [Dependency] private readonly SharedBodySystem _body = default!;
+    [Dependency] private readonly EroticCoverageSystem _coverage = default!;
 
     public override void Initialize()
     {
@@ -74,15 +76,16 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             var organPrefs = _erpPrefs.GetCached(userId, slot) ?? ErpOrganPreferences.Default();
             cfg = organPrefs.Organs.TryGetValue(slotId, out var saved)
                 ? saved
-                : new ErpOrganConfig { Variant = GetDefaultVariant(eroticComp, slotId, ent.Comp) };
+                : CreateDefaultConfig(eroticComp, slotId, ent.Comp);
         }
         else
         {
-            cfg = new ErpOrganConfig { Variant = GetDefaultVariant(eroticComp, slotId, ent.Comp) };
+            cfg = CreateDefaultConfig(eroticComp, slotId, ent.Comp);
         }
 
         visuals.Organs[slotId] = cfg;
         Dirty(args.Body, visuals);
+        _coverage.RefreshCoverage(args.Body);
     }
 
     private void OnOrganRemoved(Entity<EroticOrganComponent> ent, ref OrganRemovedFromBodyEvent args)
@@ -95,6 +98,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
 
         visuals.Organs.Remove(organ.SlotId);
         Dirty(args.OldBody, visuals);
+        _coverage.RefreshCoverage(args.OldBody);
     }
 
     private void RebuildOrganVisuals(EntityUid uid, NetUserId userId, int slot)
@@ -116,8 +120,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             else
             {
                 // No saved preference: use a valid species override if defined, otherwise the organ default.
-                var defaultVariant = GetDefaultVariant(eroticComp, slotId, organ.Comp1);
-                organs[slotId] = new ErpOrganConfig { Variant = defaultVariant };
+                organs[slotId] = CreateDefaultConfig(eroticComp, slotId, organ.Comp1);
             }
         }
 
@@ -125,10 +128,18 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
         visuals.Organs = organs;
         visuals.HideWhenFlaccid = GetHideWhenFlaccid(eroticComp);
         Dirty(uid, visuals);
+        _coverage.RefreshCoverage(uid);
     }
 
     private static string GetDefaultVariant(EroticOrgansComponent? organs, string slotId, EroticOrganComponent organ)
         => ErpOrganEditorDefinitions.GetDefaultVariant(organs, slotId, organ);
+
+    private static ErpOrganConfig CreateDefaultConfig(EroticOrgansComponent? organs, string slotId, EroticOrganComponent organ)
+        => new()
+        {
+            Variant = GetDefaultVariant(organs, slotId, organ),
+            Size = slotId == ErpOrganSlots.Breasts ? 0 : 3,
+        };
 
     private static HashSet<string> GetHideWhenFlaccid(EroticOrgansComponent? organs)
         => organs == null ? [] : new HashSet<string>(organs.HideWhenFlaccid);

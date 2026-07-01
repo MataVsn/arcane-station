@@ -317,7 +317,8 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             var rsiPath = proto.Rsi;
             var stateName = ResolveStateName(proto, cfg, phase);
             var visible = !ent.Comp.CoveredSlots.Contains(slotId)
-                         && (!ent.Comp.HideWhenFlaccid.Contains(slotId) || phase >= ArousalPhase.Aroused);
+                         && (!ent.Comp.HideWhenFlaccid.Contains(slotId) || phase >= ArousalPhase.Aroused)
+                         && !IsSizeZeroHidden(slotId, cfg);
 
             if (!_sprite.LayerMapTryGet((ent, sprite), layerKey, out var index, false))
             {
@@ -336,7 +337,9 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
 
     private int? GetOrganLayerInsertIndex(Entity<ErpOrganVisualsComponent> ent, SpriteComponent sprite, string slotId)
     {
-        var insertIdx = GetFirstEquipmentLayerIndex(ent.Owner, sprite);
+        var bodyLayer = GetOrganBodyLayer(slotId);
+        var insertIdx = GetBodyLayerInsertIndex(ent, sprite, bodyLayer)
+                        ?? GetFirstEquipmentLayerIndex(ent.Owner, sprite);
 
         var reachedSlot = false;
         foreach (var otherSlot in _orderedSlots)
@@ -353,9 +356,13 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             if (!_sprite.LayerMapTryGet((ent, sprite), otherLayerKey, out var otherIdx, false))
                 continue;
 
+            var otherBodyLayer = GetOrganBodyLayer(otherSlot);
+            if (bodyLayer != otherBodyLayer)
+                continue;
+
             if (!reachedSlot)
             {
-                insertIdx = otherIdx + 1;
+                insertIdx = insertIdx.HasValue ? Math.Max(insertIdx.Value, otherIdx + 1) : otherIdx + 1;
                 continue;
             }
 
@@ -369,7 +376,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
 
     private bool OrganLayerOrderMatches(Entity<ErpOrganVisualsComponent> ent, SpriteComponent sprite)
     {
-        var previousIdx = -1;
+        var previousByBodyLayer = new Dictionary<HumanoidVisualLayers, int>();
         var clothingLayer = GetFirstEquipmentLayerIndex(ent.Owner, sprite);
 
         foreach (var slotId in _orderedSlots)
@@ -383,10 +390,16 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             if (clothingLayer != null && index >= clothingLayer)
                 return false;
 
-            if (index < previousIdx)
-                return false;
+            if (GetOrganBodyLayer(slotId) is { } bodyLayer)
+            {
+                if (_sprite.LayerMapTryGet((ent, sprite), bodyLayer, out var bodyIdx, false) && index <= bodyIdx)
+                    return false;
 
-            previousIdx = index;
+                if (previousByBodyLayer.TryGetValue(bodyLayer, out var previousIdx) && index < previousIdx)
+                    return false;
+
+                previousByBodyLayer[bodyLayer] = index;
+            }
         }
 
         return true;
@@ -430,6 +443,19 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
         return firstIdx;
     }
 
+    private int? GetBodyLayerInsertIndex(
+        Entity<ErpOrganVisualsComponent> ent,
+        SpriteComponent sprite,
+        HumanoidVisualLayers? bodyLayer)
+    {
+        if (bodyLayer == null)
+            return null;
+
+        return _sprite.LayerMapTryGet((ent, sprite), bodyLayer.Value, out var bodyIdx, false)
+            ? bodyIdx + 1
+            : null;
+    }
+
     private int CompareSlotsByDrawOrder(string left, string right)
     {
         var orderCompare = GetDrawOrder(left).CompareTo(GetDrawOrder(right));
@@ -440,6 +466,21 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
 
     private int GetDrawOrder(string slotId)
         => _slotDrawOrder.TryGetValue(slotId, out var order) ? order : 0;
+
+    private static HumanoidVisualLayers? GetOrganBodyLayer(string slotId)
+        => slotId switch
+        {
+            ErpOrganSlots.Breasts => HumanoidVisualLayers.Chest,
+            ErpOrganSlots.Penis
+                or ErpOrganSlots.Testicles
+                or ErpOrganSlots.Vagina
+                or ErpOrganSlots.Anus
+                or ErpOrganSlots.Butt => HumanoidVisualLayers.Groin,
+            _ => null,
+        };
+
+    private static bool IsSizeZeroHidden(string slotId, ErpOrganConfig cfg)
+        => slotId == ErpOrganSlots.Breasts && cfg.Size <= 0;
 
     private static string ResolveStateName(ErpOrganVisualPrototype proto, ErpOrganConfig cfg, ArousalPhase phase)
     {

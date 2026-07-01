@@ -217,6 +217,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         targetHumanoid.Height = sourceHumanoid.Height; // Goobstation: port EE height/width sliders
         targetHumanoid.Width = sourceHumanoid.Width; // Goobstation: port EE height/width sliders
         SetSex(target, sourceHumanoid.Sex, false, targetHumanoid);
+        SetTTSVoice(target, sourceHumanoid.Voice, false, targetHumanoid); // Arcane-edit
         targetHumanoid.CustomBaseLayers = new(sourceHumanoid.CustomBaseLayers);
         targetHumanoid.MarkingSet = new(sourceHumanoid.MarkingSet);
 

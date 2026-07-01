@@ -94,6 +94,8 @@
   - type: ErpPanelOwner
     enabled: false
   - type: EroticOrgans
+    hideWhenFlaccid:
+    - penis
   # Arcane-end
   - type: MeleeWeapon
     soundHit:

@@ -627,6 +627,8 @@
     chestFemale:
     - proto: OrganBreastsHuman
       slot: breasts
+    hideWhenFlaccid:
+    - penis
   # Arcane-end
 
 - type: entity

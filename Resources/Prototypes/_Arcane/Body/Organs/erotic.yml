@@ -78,7 +78,15 @@
   parent: OrganPenis
 
 - type: entity
+  id: OrganPenisKobold
+  parent: OrganPenisReptilian
+
+- type: entity
   id: OrganPenisDiona
+  parent: OrganPenis
+
+- type: entity
+  id: OrganPenisChitinid
   parent: OrganPenis
 
 - type: entity

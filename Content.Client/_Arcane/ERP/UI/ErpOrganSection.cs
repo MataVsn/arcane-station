@@ -90,20 +90,20 @@ public sealed class ErpOrganSection : BoxContainer
             // Size slider
             Slider? sizeSlider = null;
             Label? sizeLabel = null;
-            if (definition.MaxSize > 1)
+            if (definition.MaxSize > definition.MinSize)
             {
                 sizeLabel = new Label
                 {
-                    Text = "1",
+                    Text = definition.MinSize.ToString(),
                     MinWidth = 20,
                     VAlign = Label.VAlignMode.Center,
                 };
 
                 sizeSlider = new Slider
                 {
-                    MinValue = 1,
+                    MinValue = definition.MinSize,
                     MaxValue = definition.MaxSize,
-                    Value = 1,
+                    Value = definition.MinSize,
                     HorizontalExpand = true,
                     MinWidth = 80,
                 };
@@ -283,7 +283,7 @@ public sealed class ErpOrganSection : BoxContainer
         var variantIdx = ctrl.Variant?.SelectedId ?? 0;
         var variant = variantIdx < variants.Length ? variants[variantIdx] : ctrl.Definition.DefaultVariant;
 
-        var size = (int) MathF.Round(ctrl.Size?.Value ?? 1f);
+        var size = (int) MathF.Round(ctrl.Size?.Value ?? ctrl.Definition.MinSize);
         var color = !ctrl.Definition.AllowColor || ctrl.SkinCheck.Pressed ? (Color?) null : ctrl.ColorSelector.Color;
 
         _prefs.SetOrgan(slotId, new ErpOrganConfig { Variant = variant, Size = size, Color = color });

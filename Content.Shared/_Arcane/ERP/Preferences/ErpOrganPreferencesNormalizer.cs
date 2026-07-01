@@ -20,7 +20,8 @@ public static class ErpOrganPreferencesNormalizer
                 continue;
 
             var maxSize = ErpOrganSlots.MaxSize.TryGetValue(slotId, out var ms) ? ms : 1;
-            var size = Math.Clamp(cfg.Size, 1, maxSize);
+            var minSize = slotId == ErpOrganSlots.Breasts ? 0 : 1;
+            var size = Math.Clamp(cfg.Size, minSize, maxSize);
 
             string variant;
             var allowed = ErpOrganSlots.Variants.GetValueOrDefault(slotId);
@@ -58,7 +59,7 @@ public static class ErpOrganPreferencesNormalizer
             if (!input.Organs.TryGetValue(def.SlotId, out var cfg))
                 continue;
 
-            var size = Math.Clamp(cfg.Size, 1, def.MaxSize);
+            var size = Math.Clamp(cfg.Size, def.MinSize, def.MaxSize);
 
             var variant = cfg.Variant;
             if (def.Variants.Length > 0 && Array.IndexOf(def.Variants, variant) < 0)

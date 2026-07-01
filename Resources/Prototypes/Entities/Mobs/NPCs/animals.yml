@@ -1928,6 +1928,29 @@
   - type: Body
     prototype: Kobold
     requiredLegs: 2
+  # Arcane-start
+  - type: EroticOrgans
+    groinCommon:
+    - proto: OrganAnus
+      slot: anus
+    - proto: OrganButt
+      slot: butt
+    groinMale:
+    - proto: OrganPenisKobold
+      slot: penis
+    - proto: OrganTesticles
+      slot: testicles
+    groinFemale:
+    - proto: OrganVagina
+      slot: vagina
+    - proto: OrganUterus
+      slot: uterus
+    chestFemale:
+    - proto: OrganBreastsHuman
+      slot: breasts
+    hideWhenFlaccid:
+    - penis
+  # Arcane-end
   # Shitmed Change End
   - type: Speech
     speechSounds: Lizard

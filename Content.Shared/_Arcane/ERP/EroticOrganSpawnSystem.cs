@@ -3,6 +3,7 @@ using Content.Shared._Shitmed.Humanoid.Events;
 using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
+using Content.Shared.Cloning.Events;
 using Content.Shared.Humanoid;
 using Robust.Shared.Containers;
 using Robust.Shared.Network;
@@ -24,6 +25,7 @@ public sealed class EroticOrganSpawnSystem : EntitySystem
         SubscribeLocalEvent<EroticOrgansComponent, MapInitEvent>(OnMapInit, after: [typeof(SharedBodySystem)]);
         SubscribeLocalEvent<EroticOrgansComponent, ProfileLoadFinishedEvent>(OnProfileLoaded);
         SubscribeLocalEvent<EroticOrgansComponent, SexChangedEvent>(OnSexChanged);
+        SubscribeLocalEvent<EroticOrgansComponent, CloningEvent>(OnCloned);
     }
 
     private void OnMapInit(Entity<EroticOrgansComponent> ent, ref MapInitEvent args)
@@ -59,6 +61,21 @@ public sealed class EroticOrganSpawnSystem : EntitySystem
 
         RemoveEroticOrgans(ent);
         SpawnEroticOrgans(ent, ent.Comp, args.NewSex);
+    }
+
+    private void OnCloned(Entity<EroticOrgansComponent> ent, ref CloningEvent args)
+    {
+        if (!_net.IsServer)
+            return;
+
+        if (!TryComp<EroticOrgansComponent>(args.CloneUid, out var organs) ||
+            !TryComp<HumanoidAppearanceComponent>(args.CloneUid, out var humanoid))
+        {
+            return;
+        }
+
+        RemoveEroticOrgans(args.CloneUid);
+        SpawnEroticOrgans(args.CloneUid, organs, humanoid.Sex);
     }
 
     private void SpawnEroticOrgans(EntityUid uid, EroticOrgansComponent def, Sex sex)

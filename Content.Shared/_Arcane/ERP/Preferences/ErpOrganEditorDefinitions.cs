@@ -11,6 +11,7 @@ public sealed class ErpOrganEditorDefinition
     public string SlotId = string.Empty;
     public string[] Variants = [];
     public string DefaultVariant = "human";
+    public int MinSize = 1;
     public int MaxSize = 1;
     public bool AllowColor = true;
 }
@@ -58,7 +59,8 @@ public static class ErpOrganEditorDefinitions
                 SlotId = entry.Slot,
                 Variants = variants,
                 DefaultVariant = defaultVariant,
-                MaxSize = Math.Max(1, organ.EditorMaxSize),
+                MinSize = GetMinSize(entry.Slot),
+                MaxSize = Math.Max(GetMinSize(entry.Slot), organ.EditorMaxSize),
                 AllowColor = organ.EditorAllowColor,
             };
         }
@@ -75,7 +77,7 @@ public static class ErpOrganEditorDefinitions
         => new()
         {
             Variant = def.DefaultVariant,
-            Size = Math.Clamp(3, 1, def.MaxSize),
+            Size = Math.Clamp(GetDefaultSize(def.SlotId), def.MinSize, def.MaxSize),
         };
 
     private static IEnumerable<EroticOrganEntry> GetEntries(EroticOrgansComponent organs, Sex sex)
@@ -137,12 +139,19 @@ public static class ErpOrganEditorDefinitions
                 SlotId = slotId,
                 Variants = variants,
                 DefaultVariant = variants.Length > 0 ? variants[0] : "human",
+                MinSize = GetMinSize(slotId),
                 MaxSize = ErpOrganSlots.MaxSize.GetValueOrDefault(slotId, 1),
             });
         }
 
         return result;
     }
+
+    private static int GetMinSize(string slotId)
+        => slotId == ErpOrganSlots.Breasts ? 0 : 1;
+
+    private static int GetDefaultSize(string slotId)
+        => slotId == ErpOrganSlots.Breasts ? 0 : 3;
 
     private static int GetSlotOrder(string slotId)
     {
