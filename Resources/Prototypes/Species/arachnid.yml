@@ -28,8 +28,13 @@
   maleFirstNames: NamesArachnidFirst
   femaleFirstNames: NamesArachnidFirst
   lastNames: NamesArachnidLast
+  # Arcane-start: allow ERP organ sex variants.
   sexes:
+  - Male
+  - Female
+  - Futanari
   - Unsexed
+  # Arcane-end
   # Orion-Start
   category: Classic
   description: "/ServerInfo/_Orion/SpeciesDescriptions/Arachnid.xml"

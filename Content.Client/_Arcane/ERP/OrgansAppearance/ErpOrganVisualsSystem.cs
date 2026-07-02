@@ -8,6 +8,7 @@ using Content.Shared._Arcane.ERP.Preferences;
 using Content.Shared._Shitmed.Humanoid.Events;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Humanoid;
+using Content.Shared.Humanoid.Markings;
 using Content.Shared.Inventory;
 using Robust.Client.GameObjects;
 using Robust.Shared.GameObjects;
@@ -24,6 +25,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
     [Dependency] private readonly IPrototypeManager _proto = default!;
     [Dependency] private readonly IComponentFactory _componentFactory = default!;
     [Dependency] private readonly InventorySystem _inventory = default!;
+    [Dependency] private readonly MarkingManager _markingManager = default!;
 
     // (slot, species) → prototype; built from erpOrganVisual prototypes at Initialize.
     private readonly Dictionary<(string slot, string species), ErpOrganVisualPrototype> _speciesLookup = new();
@@ -285,7 +287,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
         var phase = phaseOverride ?? CompOrNull<ArousalComponent>(ent)?.CurrentPhase ?? ArousalPhase.Calm;
         var species = humanoid?.Species ?? string.Empty;
 
-        if (!OrganLayerOrderMatches(ent, sprite))
+        if (!OrganLayerOrderMatches(ent, humanoid, sprite))
             RemoveOrganLayers(ent, sprite);
 
         foreach (var slotId in _orderedSlots)
@@ -325,7 +327,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
                 index = _sprite.AddLayer(
                     (ent, sprite),
                     new SpriteSpecifier.Rsi(new ResPath(rsiPath), stateName),
-                    GetOrganLayerInsertIndex(ent, sprite, slotId));
+                    GetOrganLayerInsertIndex(ent, humanoid, sprite, slotId));
                 _sprite.LayerMapSet((ent, sprite), layerKey, index);
             }
 
@@ -335,11 +337,19 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
         }
     }
 
-    private int? GetOrganLayerInsertIndex(Entity<ErpOrganVisualsComponent> ent, SpriteComponent sprite, string slotId)
+    private int? GetOrganLayerInsertIndex(
+        Entity<ErpOrganVisualsComponent> ent,
+        HumanoidAppearanceComponent? humanoid,
+        SpriteComponent sprite,
+        string slotId)
     {
         var bodyLayer = GetOrganBodyLayer(slotId);
         var insertIdx = GetBodyLayerInsertIndex(ent, sprite, bodyLayer)
+                        ?? GetLastMarkingLayerIndex(ent, humanoid, sprite, bodyLayer)
                         ?? GetFirstEquipmentLayerIndex(ent.Owner, sprite);
+
+        if (GetLastMarkingLayerIndex(ent, humanoid, sprite, bodyLayer) is { } markingIdx)
+            insertIdx = insertIdx.HasValue ? Math.Max(insertIdx.Value, markingIdx + 1) : markingIdx + 1;
 
         var reachedSlot = false;
         foreach (var otherSlot in _orderedSlots)
@@ -374,7 +384,45 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
         return insertIdx;
     }
 
-    private bool OrganLayerOrderMatches(Entity<ErpOrganVisualsComponent> ent, SpriteComponent sprite)
+    private int? GetLastMarkingLayerIndex(
+        Entity<ErpOrganVisualsComponent> ent,
+        HumanoidAppearanceComponent? humanoid,
+        SpriteComponent sprite,
+        HumanoidVisualLayers? bodyLayer)
+    {
+        if (humanoid == null || bodyLayer == null)
+            return null;
+
+        var category = MarkingCategoriesConversion.FromHumanoidVisualLayers(bodyLayer.Value);
+        if (!humanoid.MarkingSet.Markings.TryGetValue(category, out var markings))
+            return null;
+
+        int? lastIdx = null;
+        foreach (var marking in markings)
+        {
+            if (!_markingManager.TryGetMarking(marking, out var prototype))
+                continue;
+
+            foreach (var spriteSpecifier in prototype.Sprites)
+            {
+                if (spriteSpecifier is not SpriteSpecifier.Rsi rsi)
+                    continue;
+
+                var layerId = $"{marking.MarkingId}-{rsi.RsiState}";
+                if (!_sprite.LayerMapTryGet((ent, sprite), layerId, out var idx, false))
+                    continue;
+
+                lastIdx = lastIdx.HasValue ? Math.Max(lastIdx.Value, idx) : idx;
+            }
+        }
+
+        return lastIdx;
+    }
+
+    private bool OrganLayerOrderMatches(
+        Entity<ErpOrganVisualsComponent> ent,
+        HumanoidAppearanceComponent? humanoid,
+        SpriteComponent sprite)
     {
         var previousByBodyLayer = new Dictionary<HumanoidVisualLayers, int>();
         var clothingLayer = GetFirstEquipmentLayerIndex(ent.Owner, sprite);
@@ -393,6 +441,9 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             if (GetOrganBodyLayer(slotId) is { } bodyLayer)
             {
                 if (_sprite.LayerMapTryGet((ent, sprite), bodyLayer, out var bodyIdx, false) && index <= bodyIdx)
+                    return false;
+
+                if (GetLastMarkingLayerIndex(ent, humanoid, sprite, bodyLayer) is { } markingIdx && index <= markingIdx)
                     return false;
 
                 if (previousByBodyLayer.TryGetValue(bodyLayer, out var previousIdx) && index < previousIdx)
