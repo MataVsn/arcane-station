@@ -25,7 +25,13 @@ public sealed class ErpOrganPreferences
     {
         var copy = new ErpOrganPreferences();
         foreach (var (slot, cfg) in Organs)
-            copy.Organs[slot] = new ErpOrganConfig { Variant = cfg.Variant, Size = cfg.Size, Color = cfg.Color };
+            copy.Organs[slot] = new ErpOrganConfig
+            {
+                Variant = cfg.Variant,
+                Size = cfg.Size,
+                Color = cfg.Color,
+                HideWhenFlaccid = cfg.HideWhenFlaccid,
+            };
         return copy;
     }
 }
@@ -41,6 +47,9 @@ public sealed class ErpOrganConfig
 
     /// <summary>Tint color. Null = use character skin color.</summary>
     public Color? Color { get; set; } = null;
+
+    /// <summary>When the species supports it, hide this organ until aroused.</summary>
+    public bool HideWhenFlaccid { get; set; } = true;
 }
 
 /// <summary>Organ slot ids used as keys in ErpOrganPreferences.</summary>

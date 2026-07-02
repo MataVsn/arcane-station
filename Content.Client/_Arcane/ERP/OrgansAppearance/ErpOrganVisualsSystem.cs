@@ -317,7 +317,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
             var rsiPath = proto.Rsi;
             var stateName = ResolveStateName(proto, cfg, phase);
             var visible = !ent.Comp.CoveredSlots.Contains(slotId)
-                         && (!ent.Comp.HideWhenFlaccid.Contains(slotId) || phase >= ArousalPhase.Aroused)
+                         && (!IsHiddenWhenFlaccid(ent.Comp, slotId, cfg) || phase >= ArousalPhase.Aroused)
                          && !IsSizeZeroHidden(slotId, cfg);
 
             if (!_sprite.LayerMapTryGet((ent, sprite), layerKey, out var index, false))
@@ -481,6 +481,9 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
 
     private static bool IsSizeZeroHidden(string slotId, ErpOrganConfig cfg)
         => slotId == ErpOrganSlots.Breasts && cfg.Size <= 0;
+
+    private static bool IsHiddenWhenFlaccid(ErpOrganVisualsComponent visuals, string slotId, ErpOrganConfig cfg)
+        => visuals.HideWhenFlaccid.Contains(slotId) && cfg.HideWhenFlaccid;
 
     private static string ResolveStateName(ErpOrganVisualPrototype proto, ErpOrganConfig cfg, ArousalPhase phase)
     {

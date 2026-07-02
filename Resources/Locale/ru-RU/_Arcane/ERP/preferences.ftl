@@ -2,6 +2,7 @@ erp-organ-section-title = ERP Органы
 erp-organ-size-label = Размер:
 erp-organ-skin-color-label = Цвет кожи
 erp-organ-penis-aroused-preview-label = Эрекция
+erp-organ-hide-when-flaccid-label = Скрывать без эрекции
 erp-organ-reset-button = Сброс
 
 erp-preferences-tab-organ-penis = Пенис

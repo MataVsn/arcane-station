@@ -14,6 +14,8 @@ public sealed class ErpOrganEditorDefinition
     public int MinSize = 1;
     public int MaxSize = 1;
     public bool AllowColor = true;
+    public bool AllowHideWhenFlaccid;
+    public bool DefaultHideWhenFlaccid;
 }
 
 public static class ErpOrganEditorDefinitions
@@ -62,6 +64,8 @@ public static class ErpOrganEditorDefinitions
                 MinSize = GetMinSize(entry.Slot),
                 MaxSize = Math.Max(GetMinSize(entry.Slot), organ.EditorMaxSize),
                 AllowColor = organ.EditorAllowColor,
+                AllowHideWhenFlaccid = organs.HideWhenFlaccid.Contains(entry.Slot),
+                DefaultHideWhenFlaccid = organs.HideWhenFlaccid.Contains(entry.Slot),
             };
         }
 
@@ -78,6 +82,7 @@ public static class ErpOrganEditorDefinitions
         {
             Variant = def.DefaultVariant,
             Size = Math.Clamp(GetDefaultSize(def.SlotId), def.MinSize, def.MaxSize),
+            HideWhenFlaccid = def.DefaultHideWhenFlaccid,
         };
 
     private static IEnumerable<EroticOrganEntry> GetEntries(EroticOrgansComponent organs, Sex sex)

@@ -136,6 +136,19 @@ public sealed class ErpOrganSection : BoxContainer
 
             row.AddChild(skinCheck);
 
+            CheckBox? hideWhenFlaccid = null;
+            if (definition.AllowHideWhenFlaccid)
+            {
+                hideWhenFlaccid = new CheckBox
+                {
+                    Text = Loc.GetString("erp-organ-hide-when-flaccid-label"),
+                    Pressed = definition.DefaultHideWhenFlaccid,
+                };
+
+                hideWhenFlaccid.OnToggled += _ => NotifyChange(slotId);
+                row.AddChild(hideWhenFlaccid);
+            }
+
             CheckBox? arousedPreview = null;
             if (slotId == ErpOrganSlots.Penis)
             {
@@ -188,7 +201,7 @@ public sealed class ErpOrganSection : BoxContainer
             container.AddChild(colorSelector);
             AddChild(container);
 
-            _organControls[slotId] = new OrganControls(container, variantBtn, sizeSlider, skinCheck, arousedPreview, colorSelector, definition);
+            _organControls[slotId] = new OrganControls(container, variantBtn, sizeSlider, skinCheck, hideWhenFlaccid, arousedPreview, colorSelector, definition);
         }
     }
 
@@ -285,8 +298,16 @@ public sealed class ErpOrganSection : BoxContainer
 
         var size = (int) MathF.Round(ctrl.Size?.Value ?? ctrl.Definition.MinSize);
         var color = !ctrl.Definition.AllowColor || ctrl.SkinCheck.Pressed ? (Color?) null : ctrl.ColorSelector.Color;
+        var hideWhenFlaccid = ctrl.Definition.AllowHideWhenFlaccid &&
+                              (ctrl.HideWhenFlaccid?.Pressed ?? ctrl.Definition.DefaultHideWhenFlaccid);
 
-        _prefs.SetOrgan(slotId, new ErpOrganConfig { Variant = variant, Size = size, Color = color });
+        _prefs.SetOrgan(slotId, new ErpOrganConfig
+        {
+            Variant = variant,
+            Size = size,
+            Color = color,
+            HideWhenFlaccid = hideWhenFlaccid,
+        });
         OnPreferencesChanged?.Invoke(_prefs);
     }
 
@@ -322,7 +343,13 @@ public sealed class ErpOrganSection : BoxContainer
                 var idx = Array.IndexOf(variants, cfg.Variant);
                 if (idx < 0 && variants.Length > 0)
                 {
-                    cfg = new ErpOrganConfig { Variant = variants[0], Size = cfg.Size, Color = cfg.Color };
+                    cfg = new ErpOrganConfig
+                    {
+                        Variant = variants[0],
+                        Size = cfg.Size,
+                        Color = cfg.Color,
+                        HideWhenFlaccid = cfg.HideWhenFlaccid,
+                    };
                     _prefs.SetOrgan(slotId, cfg);
                     idx = 0;
                 }
@@ -337,6 +364,9 @@ public sealed class ErpOrganSection : BoxContainer
             ctrl.ColorSelector.Visible = hasCustomColor;
             if (hasCustomColor)
                 ctrl.ColorSelector.Color = cfg.Color!.Value;
+
+            if (ctrl.HideWhenFlaccid != null)
+                ctrl.HideWhenFlaccid.Pressed = cfg.HideWhenFlaccid;
         }
     }
 
@@ -346,17 +376,19 @@ public sealed class ErpOrganSection : BoxContainer
         public readonly OptionButton? Variant;
         public readonly Slider? Size;
         public readonly CheckBox SkinCheck;
+        public readonly CheckBox? HideWhenFlaccid;
         public readonly CheckBox? ArousedPreview;
         public readonly ColorSelectorSliders ColorSelector;
         public readonly ErpOrganEditorDefinition Definition;
 
         public OrganControls(BoxContainer container, OptionButton? variant, Slider? size,
-            CheckBox skinCheck, CheckBox? arousedPreview, ColorSelectorSliders colorSelector, ErpOrganEditorDefinition definition)
+            CheckBox skinCheck, CheckBox? hideWhenFlaccid, CheckBox? arousedPreview, ColorSelectorSliders colorSelector, ErpOrganEditorDefinition definition)
         {
             Container = container;
             Variant = variant;
             Size = size;
             SkinCheck = skinCheck;
+            HideWhenFlaccid = hideWhenFlaccid;
             ArousedPreview = arousedPreview;
             ColorSelector = colorSelector;
             Definition = definition;

@@ -139,6 +139,7 @@ public sealed class ErpOrganVisualsSystem : EntitySystem
         {
             Variant = GetDefaultVariant(organs, slotId, organ),
             Size = slotId == ErpOrganSlots.Breasts ? 0 : 3,
+            HideWhenFlaccid = organs?.HideWhenFlaccid.Contains(slotId) == true,
         };
 
     private static HashSet<string> GetHideWhenFlaccid(EroticOrgansComponent? organs)

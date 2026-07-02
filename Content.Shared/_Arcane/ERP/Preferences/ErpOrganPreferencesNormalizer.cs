@@ -43,6 +43,7 @@ public static class ErpOrganPreferencesNormalizer
                 Size = size,
                 Variant = variant,
                 Color = color,
+                HideWhenFlaccid = cfg.HideWhenFlaccid,
             };
         }
         return result;
@@ -78,6 +79,7 @@ public static class ErpOrganPreferencesNormalizer
                 Size = size,
                 Variant = variant,
                 Color = color,
+                HideWhenFlaccid = def.AllowHideWhenFlaccid && cfg.HideWhenFlaccid,
             };
         }
 
