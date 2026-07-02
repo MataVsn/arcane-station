@@ -1,4 +1,5 @@
 using System.Linq;
+using Content.Server.Connection;
 using Content.Server.GameTicking;
 using Content.Server.Maps;
 using Content.Shared.CCVar;
@@ -43,11 +44,11 @@ public sealed class JoinQueueManager : IJoinQueueManager
 
 
     [Dependency] private readonly IPlayerManager _player = default!;
+    [Dependency] private readonly IConnectionManager _connection = default!;
     [Dependency] private readonly IConfigurationManager _configuration = default!;
     [Dependency] private readonly IServerNetManager _net = default!;
     [Dependency] private readonly LinkAccountManager _linkAccount = default!;
     [Dependency] private readonly UserDbDataManager _userDb = default!;
-    [Dependency] private readonly IServerDbManager _db = default!; // Arcane-edit
     [Dependency] private readonly IEntityManager _entityManager = default!;
     [Dependency] private readonly IGameMapManager _gameMapManager = default!;
     [Dependency] private readonly IGameTiming _gameTiming = default!;
@@ -215,18 +216,16 @@ public sealed class JoinQueueManager : IJoinQueueManager
         if (!_isEnabled)
             return;
 
-        // Arcane-edit-start
-        var isPatron = _linkAccount.GetPatron(session)?.Tier != null;
-        var bypassQueue = await HasQueueBypass(session.UserId);
-        // Arcane-edit-end
+        var isPrivileged = await _connection.HasPrivilegedJoin(session.UserId);
         var currentOnline = _player.PlayerCount - 1 - _bypassUsers.Count;
         var haveFreeSlot = currentOnline < _configuration.GetCVar(CCVars.SoftMaxPlayers);
 
-        if (haveFreeSlot || bypassQueue) // Arcane-edit
+        if (isPrivileged || haveFreeSlot)
         {
             SendToGame(session);
             _reservations.Remove(session.UserId);
-            if (bypassQueue && !haveFreeSlot)
+
+            if (isPrivileged && !haveFreeSlot)
             {
                 _bypassUsers.Add(session.UserId);
                 QueueBypassCount.Inc();
@@ -258,18 +257,8 @@ public sealed class JoinQueueManager : IJoinQueueManager
 
         _queueWaitOffsets.Remove(session.UserId); // Arcane-edit
 
-        // Arcane-edit-start
-        if (isPatron && _patreonIsEnabled)
-        {
-            _patronQueue.Add(session);
-            _queuedSessions[session.UserId] = session;
-            ProcessQueue();
-            return;
-        }
-
         _queue.Add(session);
         _queuedSessions[session.UserId] = session;
-        // Arcane-edit-end
         ProcessQueue();
     }
 
@@ -299,18 +288,6 @@ public sealed class JoinQueueManager : IJoinQueueManager
         SendUpdateMessages();
         QueueCount.Set(PlayerInQueueCount); // Arcane-edit
     }
-
-    // Arcane-edit-start
-    private async Task<bool> HasQueueBypass(NetUserId userId)
-    {
-        var isAdmin = await _db.GetAdminDataForAsync(userId) != null;
-        if (isAdmin)
-            return true;
-
-        return _entityManager.System<GameTicker>().PlayerGameStatuses.TryGetValue(userId, out var status) &&
-               status == PlayerGameStatus.JoinedGame;
-    }
-    // Arcane-edit-end
 
     private void RecordWaitTime(ICommonSession session)
     {
